@@ -5,7 +5,7 @@ from pulumi import ResourceOptions
 from pulumi_kubernetes import helm
 
 
-class StaticPageArgs(TypedDict):
+class GPUOperatorArgs(TypedDict):
     namespace: pulumi.Input[str]
     """The namespace to deploy the operator to."""
 
@@ -16,7 +16,7 @@ class StaticPageArgs(TypedDict):
 class GPUOperator(pulumi.ComponentResource):
     def __init__(self,
                  name: str,
-                 args: StaticPageArgs,
+                 args: GPUOperatorArgs,
                  opts: Optional[ResourceOptions] = None) -> None:
         super().__init__('gpu-operator-component:index:GPUOperator', name, {}, opts)
 
