@@ -1,0 +1,7 @@
+name: gpu-operator
+version: 1.0.0
+runtime:
+  name: python
+  options:
+    toolchain: uv
+    virtualenv: .venv
