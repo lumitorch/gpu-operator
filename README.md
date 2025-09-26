@@ -56,10 +56,7 @@ from pulumi_gpu_operator_component import GPUOperator, GPUOperatorArgs
 
 gpu_operator = GPUOperator(
     "gpu-operator",
-    GPUOperatorArgs(
-        namespace="gpu-operator-system",
-        version="v25.3.4"
-    ),
+    GPUOperatorArgs(),
     opts=pulumi.ResourceOptions(
         # Add any additional Pulumi resource options
     )
@@ -72,8 +69,8 @@ gpu_operator = GPUOperator(
 
 | Parameter | Type | Description | Required |
 |-----------|------|-------------|----------|
-| `namespace` | `str` | The Kubernetes namespace to deploy the operator | Yes |
-| `version` | `str` | The version of the GPU Operator Helm chart | Yes |
+| `namespace` | `str` | The Kubernetes namespace to deploy the operator | No       |
+| `version` | `str` | The version of the GPU Operator Helm chart | No      |
 
 ### Default Configuration
 

@@ -6,11 +6,11 @@ from pulumi_kubernetes import helm
 
 
 class GPUOperatorArgs(TypedDict):
-    namespace: pulumi.Input[str]
-    """The namespace to deploy the operator to."""
+    namespace: Optional[pulumi.Input[str]]
+    """The namespace to deploy the operator to. Defaults to `gpu-operator`"""
 
-    version: pulumi.Input[str]
-    """The version of the operator to deploy."""
+    version: Optional[pulumi.Input[str]]
+    """The version of the operator to deploy. Defaults to `v25.3.4`"""
 
 
 class GPUOperator(pulumi.ComponentResource):
@@ -20,11 +20,14 @@ class GPUOperator(pulumi.ComponentResource):
                  opts: Optional[ResourceOptions] = None) -> None:
         super().__init__('gpu-operator-component:index:GPUOperator', name, {}, opts)
 
+        namespace = args.get("namespace", "gpu-operator")
+        version = args.get("version") or "v25.3.4"
+
         helm.v3.Release(
             "gpu-operator",
             chart="gpu-operator",
-            version=args["version"],
-            namespace=args["namespace"],
+            version=version,
+            namespace=namespace,
             create_namespace=True,
             repository_opts=helm.v3.RepositoryOptsArgs(
                 repo="https://helm.ngc.nvidia.com/nvidia"
