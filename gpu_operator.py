@@ -14,6 +14,13 @@ class GPUOperatorArgs(TypedDict):
 
 
 class GPUOperator(pulumi.ComponentResource):
+    """
+    Manages the deployment of the NVIDIA GPU Operator on Kubernetes clusters using Helm.
+
+    The `GPUOperator` class deploys and configures the NVIDIA GPU Operator to ensure the availability of GPU device drivers and
+    GPU-related tools on Kubernetes clusters.
+    """
+
     def __init__(self,
                  name: str,
                  args: GPUOperatorArgs,
