@@ -21,15 +21,10 @@ The GPU Operator Component is a Pulumi provider that wraps the NVIDIA GPU Operat
 - Python 3.8 or later
 - Pulumi CLI installed
 - Access to a Kubernetes cluster with GPU nodes
-- `uv` package manager (recommended)
 
 ### Install the Component
 
 ```bash
-# Using uv (recommended)
-uv add pulumi-gpu-operator-component
-
-# Using pip
 pip install pulumi-gpu-operator-component
 ```
 
@@ -125,13 +120,13 @@ cd gpu-operator
 
 2. Set up the virtual environment:
 ```bash
-uv venv
+python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
 3. Install dependencies:
 ```bash
-uv sync
+pip install -r requirements.txt
 ```
 
 ### Running the Component Provider
