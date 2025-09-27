@@ -45,7 +45,7 @@ class GPUOperator(pulumi.ComponentResource):
             "gpu-operator-quota",
             metadata=kubernetes.meta.v1.ObjectMetaArgs(
                 name="gpu-operator-quota",
-                namespace="gpu-operator"
+                namespace=namespace
             ),
             spec=kubernetes.core.v1.ResourceQuotaSpecArgs(
                 hard={
