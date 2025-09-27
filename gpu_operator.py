@@ -29,8 +29,9 @@ class GPUOperator(pulumi.ComponentResource):
                  opts: Optional[ResourceOptions] = None) -> None:
         super().__init__('gpu-operator-component:index:GPUOperator', name, {}, opts)
 
-        namespace = args.get("namespace", "gpu-operator")
-        version = args.get("version") or "v25.3.4"
+        # Handle default values with apply for each input
+        namespace = pulumi.Output.from_input(args.get("namespace") or "gpu-operator")
+        version = pulumi.Output.from_input(args.get("version") or "v25.3.4")
 
         operator_namespace = kubernetes.core.v1.Namespace(
             "gpu-operator",
