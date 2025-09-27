@@ -1,3 +1,4 @@
+from importlib.metadata import metadata
 from typing import Optional, TypedDict
 
 import pulumi
@@ -31,6 +32,14 @@ class GPUOperator(pulumi.ComponentResource):
         namespace = args.get("namespace", "gpu-operator")
         version = args.get("version") or "v25.3.4"
 
+        operator_namespace = kubernetes.core.v1.Namespace(
+            "gpu-operator",
+            metadata=kubernetes.core.v1.ObjectMeta(
+                name=namespace,
+            ),
+            opts=pulumi.ResourceOptions(parent=self, provider=opts.provider),
+        )
+
         kubernetes.core.v1.ResourceQuota(
             "gpu-operator-quota",
             metadata=kubernetes.meta.v1.ObjectMetaArgs(
@@ -54,7 +63,7 @@ class GPUOperator(pulumi.ComponentResource):
                     ]
                 )
             ),
-            opts=pulumi.ResourceOptions(parent=self, provider=opts.provider)
+            opts=pulumi.ResourceOptions(parent=self, provider=opts.provider, depends_on=[operator_namespace])
         )
 
         gpu_driver_daemonset = kubernetes.yaml.ConfigFile(
@@ -68,7 +77,6 @@ class GPUOperator(pulumi.ComponentResource):
             chart="gpu-operator",
             version=version,
             namespace=namespace,
-            create_namespace=True,
             repository_opts=kubernetes.helm.v3.RepositoryOptsArgs(
                 repo="https://helm.ngc.nvidia.com/nvidia"
             ),
@@ -106,7 +114,7 @@ class GPUOperator(pulumi.ComponentResource):
                     }
                 },
             },
-            opts=pulumi.ResourceOptions(parent=self, provider=opts.provider, depends_on=[gpu_driver_daemonset])
+            opts=pulumi.ResourceOptions(parent=self, provider=opts.provider, depends_on=[operator_namespace, gpu_driver_daemonset])
         )
 
         self.register_outputs({})
