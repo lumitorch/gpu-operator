@@ -36,12 +36,32 @@ pip install pulumi-gpu-operator-component
 import pulumi
 from pulumi_gpu_operator_component import GPUOperator, GPUOperatorArgs
 
-# Deploy GPU Operator to the cluster
+# Deploy GPU Operator to the cluster with A100 optimization (default)
 gpu_operator = GPUOperator(
     "gpu-operator",
     GPUOperatorArgs(
         namespace="gpu-operator",
         version="v25.3.4"
+    )
+)
+
+# Deploy GPU Operator optimized for L4 GPUs
+gpu_operator_l4 = GPUOperator(
+    "gpu-operator-l4",
+    GPUOperatorArgs(
+        namespace="gpu-operator",
+        version="v25.3.4",
+        gpu_flavor="l4"
+    )
+)
+
+# Deploy GPU Operator optimized for T4 GPUs
+gpu_operator_t4 = GPUOperator(
+    "gpu-operator-t4",
+    GPUOperatorArgs(
+        namespace="gpu-operator",
+        version="v25.3.4",
+        gpu_flavor="t4"
     )
 )
 ```
@@ -71,6 +91,7 @@ gpu_operator = GPUOperator(
 |-----------|------|-------------|----------|
 | `namespace` | `str` | The Kubernetes namespace to deploy the operator | No       |
 | `version` | `str` | The version of the GPU Operator Helm chart | No      |
+| `gpu_flavor` | `str` | The GPU flavor to optimize monitoring for. Supported values: `a100`, `l4`, `t4`. Defaults to `a100` | No |
 
 ### Default Configuration
 
@@ -84,8 +105,9 @@ The component applies the following default configuration:
 
 ### Monitoring Metrics
 
-The component automatically configures DCGM to collect the following GPU metrics:
+The component automatically configures DCGM to collect GPU metrics optimized for the specified GPU flavor:
 
+#### A100 GPUs (Default)
 - GPU utilization percentage
 - Memory utilization
 - SM clock frequency
@@ -93,6 +115,15 @@ The component automatically configures DCGM to collect the following GPU metrics
 - GPU temperature
 - Memory temperature
 - PCIe replay counter
+
+#### L4 and T4 GPUs
+- GPU utilization percentage
+- Memory utilization
+- SM clock frequency
+- Power usage
+- GPU temperature
+
+> **Note**: L4 and T4 GPUs use a reduced set of metrics as they may not support all advanced monitoring fields available on A100 GPUs.
 
 ## Development
 
