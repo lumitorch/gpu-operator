@@ -40,7 +40,7 @@ class GPUOperator(pulumi.ComponentResource):
             opts=pulumi.ResourceOptions(parent=self, provider=opts.provider),
         )
 
-        kubernetes.core.v1.ResourceQuota(
+        priority_class = kubernetes.core.v1.ResourceQuota(
             "gpu-operator-quota",
             metadata=kubernetes.meta.v1.ObjectMetaArgs(
                 name="gpu-operator-quota",
@@ -69,7 +69,7 @@ class GPUOperator(pulumi.ComponentResource):
         gpu_driver_daemonset = kubernetes.yaml.ConfigFile(
             "gpu-driver-daemonset",
             file="https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded.yaml",
-            opts=pulumi.ResourceOptions(parent=self, provider=opts.provider)
+            opts=pulumi.ResourceOptions(parent=self, provider=opts.provider, depends_on=[priority_class])
         )
 
         kubernetes.helm.v3.Release(
