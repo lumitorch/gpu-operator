@@ -34,8 +34,8 @@ class GPUOperator(pulumi.ComponentResource):
 
         operator_namespace = kubernetes.core.v1.Namespace(
             "gpu-operator",
-            metadata=kubernetes.core.v1.ObjectMeta(
-                name=namespace,
+            metadata=kubernetes.meta.v1.ObjectMetaArgs(
+                name=namespace
             ),
             opts=pulumi.ResourceOptions(parent=self, provider=opts.provider),
         )
