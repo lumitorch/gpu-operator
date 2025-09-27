@@ -13,6 +13,48 @@ def with_default(value: Optional[pulumi.Input[T]], default: T) -> pulumi.Output[
     return pulumi.Output.from_input(value).apply(lambda v: default if v is None else v)
 
 
+def get_gpu_field_ids(gpu_flavor: str) -> list[int]:
+    """
+    Returns the appropriate DCGM field IDs for the specified GPU flavor.
+
+    Args:
+        gpu_flavor: The GPU flavor ('a100', 'l4', 't4')
+
+    Returns:
+        List of DCGM field IDs optimized for the GPU flavor
+    """
+    # Field ID mappings for different GPU flavors
+    field_mappings = {
+        "a100": [
+            1001,  # DCGM_FI_DEV_GPU_UTIL - GPU utilization percentage
+            1005,  # DCGM_FI_DEV_MEM_COPY_UTIL - Memory utilization
+            1002,  # DCGM_FI_DEV_SM_CLOCK - SM clock frequency
+            1004,  # DCGM_FI_DEV_POWER_USAGE - Power usage
+            1013,  # DCGM_FI_DEV_GPU_TEMP - GPU temperature
+            1018,  # DCGM_FI_DEV_MEMORY_TEMP - Memory temperature
+            1010,  # DCGM_FI_DEV_PCIE_REPLAY_COUNTER - PCIe replay counter
+        ],
+        "l4": [
+            1001,  # DCGM_FI_DEV_GPU_UTIL - GPU utilization percentage
+            1005,  # DCGM_FI_DEV_MEM_COPY_UTIL - Memory utilization
+            1002,  # DCGM_FI_DEV_SM_CLOCK - SM clock frequency
+            1004,  # DCGM_FI_DEV_POWER_USAGE - Power usage
+            1013,  # DCGM_FI_DEV_GPU_TEMP - GPU temperature
+            # L4 GPUs may not support all the same fields as A100
+        ],
+        "t4": [
+            1001,  # DCGM_FI_DEV_GPU_UTIL - GPU utilization percentage
+            1005,  # DCGM_FI_DEV_MEM_COPY_UTIL - Memory utilization
+            1002,  # DCGM_FI_DEV_SM_CLOCK - SM clock frequency
+            1004,  # DCGM_FI_DEV_POWER_USAGE - Power usage
+            1013,  # DCGM_FI_DEV_GPU_TEMP - GPU temperature
+            # T4 GPUs have a more limited set of supported fields
+        ]
+    }
+
+    return field_mappings.get(gpu_flavor.lower(), field_mappings["a100"])
+
+
 # ---- Input validators / coercers -------------------------------------------
 # Ensures we always have an Output[int] and fails fast with a helpful message
 # if the user passes an invalid value (e.g., "four").
@@ -57,6 +99,9 @@ class GPUOperatorArgs(TypedDict):
     version: Optional[pulumi.Input[str]]
     """The version of the operator to deploy. Defaults to `v25.3.4`"""
 
+    gpu_flavor: Optional[pulumi.Input[str]]
+    """The GPU flavor to optimize field IDs for. Supported values: `a100`, `l4`, `t4`. Defaults to `a100`"""
+
 
 class GPUOperator(pulumi.ComponentResource):
     """
@@ -76,6 +121,7 @@ class GPUOperator(pulumi.ComponentResource):
         # Handle default values with apply for each input
         namespace = with_default(args.get("namespace"), "gpu-operator")
         version = with_default(args.get("version"), "v25.3.4")
+        gpu_flavor = with_default(args.get("gpu_flavor"), "a100")
 
         operator_namespace = kubernetes.core.v1.Namespace(
             "gpu-operator",
@@ -139,7 +185,7 @@ class GPUOperator(pulumi.ComponentResource):
                 "driver": {
                     "enabled": False,
                 },
-                "dcgmExporter": {
+                "dcgmExporter": gpu_flavor.apply(lambda flavor: {
                     "enabled": True,
                     "serviceMonitor": {
                         "enabled": True
@@ -147,17 +193,9 @@ class GPUOperator(pulumi.ComponentResource):
                     "config": {
                         "collectInterval": 1000,  # 1 second - collect metrics frequently
                         "publishInterval": 1000,  # 1 second - publish metrics frequently
-                        "fieldIds": [
-                            1001,  # DCGM_FI_DEV_GPU_UTIL - GPU utilization percentage
-                            1005,  # DCGM_FI_DEV_MEM_COPY_UTIL - Memory utilization
-                            1002,  # DCGM_FI_DEV_SM_CLOCK - SM clock frequency
-                            1004,  # DCGM_FI_DEV_POWER_USAGE - Power usage
-                            1013,  # DCGM_FI_DEV_GPU_TEMP - GPU temperature
-                            1018,  # DCGM_FI_DEV_MEMORY_TEMP - Memory temperature
-                            1010,  # DCGM_FI_DEV_PCIE_REPLAY_COUNTER - PCIe replay counter
-                        ]
+                        "fieldIds": get_gpu_field_ids(flavor)
                     }
-                },
+                }),
             },
             opts=pulumi.ResourceOptions(parent=self, provider=opts.provider, depends_on=[operator_namespace, gpu_driver_daemonset])
         )
