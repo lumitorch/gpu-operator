@@ -163,7 +163,7 @@ class GPUOperator(pulumi.ComponentResource):
             opts=pulumi.ResourceOptions(parent=self, provider=opts.provider, depends_on=[priority_class])
         )
 
-        kubernetes.helm.v3.Release(
+        gpu_operator = kubernetes.helm.v3.Release(
             "gpu-operator",
             chart="gpu-operator",
             version=version,
@@ -200,4 +200,9 @@ class GPUOperator(pulumi.ComponentResource):
             opts=pulumi.ResourceOptions(parent=self, provider=opts.provider, depends_on=[operator_namespace, gpu_driver_daemonset])
         )
 
-        self.register_outputs({})
+        self.register_outputs({
+            "operator_namespace": operator_namespace,
+            "priority_class": priority_class,
+            "gpu_driver_daemonset": gpu_driver_daemonset,
+            "gpu_operator": gpu_operator,
+        })
