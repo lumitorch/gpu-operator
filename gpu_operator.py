@@ -102,14 +102,22 @@ class GPUOperatorArgs(TypedDict):
     gpu_flavor: Optional[pulumi.Input[str]]
     """The GPU flavor to optimize field IDs for. Supported values: `a100`, `l4`, `t4`. Defaults to `a100`"""
 
+    cloud_provider: Optional[pulumi.Input[str]]
+    """The cloud provider. Supported values: `aws`, `gcp`. Defaults to `gcp`"""
+
 
 class GPUOperator(pulumi.ComponentResource):
     """
     Manages the deployment of the NVIDIA GPU Operator on Kubernetes clusters using Helm.
 
     The `GPUOperator` class deploys and configures the NVIDIA GPU Operator to ensure the availability of GPU device drivers and
-    GPU-related tools on Kubernetes clusters. It creates a resource quota in the gpu-operator namespace to limit pod creation and
-    installs the NVIDIA driver DaemonSet for automatic driver installation on worker nodes with GPUs.
+    GPU-related tools on Kubernetes clusters. It performs the following actions:
+
+    - Creates a dedicated namespace with a resource quota (100 pods for system-node-critical and system-cluster-critical priority classes)
+    - Deploys the NVIDIA GPU driver installer DaemonSet from Google Cloud Platform's container-engine-accelerators
+    - Installs the NVIDIA GPU Operator Helm chart with optimized DCGM field IDs based on GPU flavor (a100, l4, t4)
+    - Configures cloud provider-specific toolkit settings (enabled for GCP, disabled for AWS)
+    - Enables DCGM exporter with Prometheus ServiceMonitor for GPU metrics collection
     """
 
     def __init__(self,
@@ -122,6 +130,7 @@ class GPUOperator(pulumi.ComponentResource):
         namespace = with_default(args.get("namespace"), "gpu-operator")
         version = with_default(args.get("version"), "v25.3.4")
         gpu_flavor = with_default(args.get("gpu_flavor"), "a100")
+        cloud_provider = with_default(args.get("cloud_provider"), "gcp")
 
         operator_namespace = kubernetes.core.v1.Namespace(
             "gpu-operator",
@@ -163,6 +172,13 @@ class GPUOperator(pulumi.ComponentResource):
             opts=pulumi.ResourceOptions(parent=self, provider=opts.provider, depends_on=[priority_class])
         )
 
+        toolkit_config = cloud_provider.apply(lambda provider: {
+            "enabled": True,
+            "installDir": "/home/kubernetes/bin/nvidia"
+        } if provider.lower() == "gcp" else {
+            "enabled": False
+        })
+
         gpu_operator = kubernetes.helm.v3.Release(
             "gpu-operator",
             chart="gpu-operator",
@@ -175,9 +191,7 @@ class GPUOperator(pulumi.ComponentResource):
                 "hostPaths": {
                     "driverInstallDir": "/home/kubernetes/bin/nvidia",
                 },
-                "toolkit": {
-                    "installDir": "/home/kubernetes/bin/nvidia",
-                },
+                "toolkit": toolkit_config,
                 "cdi": {
                     "enabled": True,
                     "default": True

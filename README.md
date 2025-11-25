@@ -64,6 +64,28 @@ gpu_operator_t4 = GPUOperator(
         gpu_flavor="t4"
     )
 )
+
+# Deploy GPU Operator for AWS
+gpu_operator_aws = GPUOperator(
+    "gpu-operator-aws",
+    GPUOperatorArgs(
+        namespace="gpu-operator",
+        version="v25.3.4",
+        gpu_flavor="a100",
+        cloud_provider="aws"
+    )
+)
+
+# Deploy GPU Operator for GCP (default)
+gpu_operator_gcp = GPUOperator(
+    "gpu-operator-gcp",
+    GPUOperatorArgs(
+        namespace="gpu-operator",
+        version="v25.3.4",
+        gpu_flavor="l4",
+        cloud_provider="gcp"
+    )
+)
 ```
 
 ### Advanced Configuration
@@ -87,19 +109,25 @@ gpu_operator = GPUOperator(
 
 ### Arguments
 
-| Parameter | Type | Description | Required |
-|-----------|------|-------------|----------|
-| `namespace` | `str` | The Kubernetes namespace to deploy the operator | No       |
-| `version` | `str` | The version of the GPU Operator Helm chart | No      |
-| `gpu_flavor` | `str` | The GPU flavor to optimize monitoring for. Supported values: `a100`, `l4`, `t4`. Defaults to `a100` | No |
+| Parameter | Type | Description | Default | Required |
+|-----------|------|-------------|---------|----------|
+| `namespace` | `str` | The Kubernetes namespace to deploy the operator | `gpu-operator` | No |
+| `version` | `str` | The version of the GPU Operator Helm chart | `v25.3.4` | No |
+| `gpu_flavor` | `str` | The GPU flavor to optimize monitoring for. Supported values: `a100`, `l4`, `t4` | `a100` | No |
+| `cloud_provider` | `str` | The cloud provider. Supported values: `aws`, `gcp` | `gcp` | No |
 
 ### Default Configuration
 
 The component applies the following default configuration:
 
-- **Driver Installation**: Disabled (assumes pre-installed drivers)
-- **Installation Directory**: `/home/kubernetes/bin/nvidia`
+- **Namespace**: Creates a `gpu-operator` namespace with a resource quota (100 pods for system-node-critical and system-cluster-critical priority classes)
+- **GPU Driver DaemonSet**: Deploys the NVIDIA driver installer DaemonSet from Google Cloud Platform's container-engine-accelerators
+- **Driver Installation Directory**: `/home/kubernetes/bin/nvidia`
+- **Toolkit Configuration**: 
+  - **GCP**: Enabled with custom installDir `/home/kubernetes/bin/nvidia`
+  - **AWS**: Disabled (assumes alternative driver installation method)
 - **CDI Support**: Enabled by default
+- **Driver**: Disabled in Helm chart (relies on the DaemonSet)
 - **DCGM Exporter**: Enabled with ServiceMonitor for Prometheus
 - **Monitoring Intervals**: 1 second collection and publish intervals
 
